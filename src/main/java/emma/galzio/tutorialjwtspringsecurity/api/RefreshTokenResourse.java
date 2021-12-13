@@ -7,9 +7,9 @@ import com.auth0.jwt.interfaces.DecodedJWT;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import emma.galzio.tutorialjwtspringsecurity.domain.Role;
 import emma.galzio.tutorialjwtspringsecurity.domain.User;
-import emma.galzio.tutorialjwtspringsecurity.service.UserService;
+import emma.galzio.tutorialjwtspringsecurity.controller.UserService;
+import emma.galzio.tutorialjwtspringsecurity.security.utils.JWTUtils;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -34,10 +34,8 @@ import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 public class RefreshTokenResourse {
 
     private final UserService userService;
+    private final JWTUtils jwtUtils;
 
-    //Todo este código es horrible, pero cuando lo haga en la otra aplicación voy a necesitar
-    //darle un buen diseño a todo, sobre todo a la parte de la creacón y validación de los tokens
-    //mediante clases utilitarias
     @GetMapping("/refresh")
     public void refreshToken(HttpServletRequest request, HttpServletResponse response) throws IOException {
 
@@ -47,7 +45,7 @@ public class RefreshTokenResourse {
                 response.setHeader("Error", "Authorization header not found");
                 response.sendError(HttpServletResponse.SC_FORBIDDEN);
             }
-            String refreshToken = authorizationHeader.substring("Bearer ".length());
+            /*String refreshToken = authorizationHeader.substring("Bearer ".length());
             Algorithm algorithm = Algorithm.HMAC256("secretStringToEncrypt".getBytes());
             JWTVerifier jwtVerifier = JWT.require(algorithm).build();
             //Acá se valida que el refresh token no esté vencido, por eso es necesario crear otro token nuevo
@@ -57,7 +55,13 @@ public class RefreshTokenResourse {
             //se loguee una vez y despues por 6 meses sigue generando nuevos access tokens a partir del mismo refresh token
             DecodedJWT decodedJWT = jwtVerifier.verify(refreshToken);
             String username = decodedJWT.getSubject();
+             */
+            String username = jwtUtils.getTokenUsername(authorizationHeader);
             User user = userService.getUser(username);
+            String accessToken = jwtUtils.generateAccessToken(user.getUserName(),
+                                    user.getRoles().stream().map(Role::getName).collect(Collectors.toList()),
+                                    request.getRequestURL().toString());
+            /*
             LocalDateTime expirationTime = LocalDateTime.now().plusMinutes(15);
             String accessToken = JWT.create().withSubject(user.getUserName())
                     .withExpiresAt(Date.from(expirationTime.atZone(ZoneId.systemDefault()).toInstant()))
@@ -65,7 +69,11 @@ public class RefreshTokenResourse {
                     .withClaim("roles",user.getRoles().stream().map(Role::getName).collect(Collectors.toList()))
                     //withClaim agrega los roles o permisos que va a tener el usuario para no tener que buscarlos de nuevo en la base de datos ni guardar el estado en la aplicacion
                     .sign(algorithm);
-
+             */
+            String newRefreshToken = jwtUtils.generateRefreshToken(user.getUserName(),
+                    request.getRequestURL().toString(),
+                    user.getRoles().stream().map(Role::getName).collect(Collectors.toList()));
+            /*
             LocalDateTime refreshTokenExpirationTime = LocalDateTime.now().plusMinutes(30);
             String newRefreshToken = JWT.create().withSubject(user.getUserName())
                     .withExpiresAt(Date.from(refreshTokenExpirationTime.atZone(ZoneId.systemDefault()).toInstant()))
@@ -73,6 +81,7 @@ public class RefreshTokenResourse {
                     //.withClaim("roles",user.getAuthorities().stream().map(GrantedAuthority::getAuthority).collect(Collectors.toList()))
                     .sign(algorithm);
 
+             */
             Map<String, String> tokens = new HashMap<>();
             tokens.put("access_token", accessToken);
             tokens.put("refresh_token",newRefreshToken);

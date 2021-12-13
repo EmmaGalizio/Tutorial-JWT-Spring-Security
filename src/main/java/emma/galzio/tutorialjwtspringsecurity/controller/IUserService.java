@@ -1,4 +1,4 @@
-package emma.galzio.tutorialjwtspringsecurity.service;
+package emma.galzio.tutorialjwtspringsecurity.controller;
 
 import emma.galzio.tutorialjwtspringsecurity.domain.Role;
 import emma.galzio.tutorialjwtspringsecurity.domain.User;

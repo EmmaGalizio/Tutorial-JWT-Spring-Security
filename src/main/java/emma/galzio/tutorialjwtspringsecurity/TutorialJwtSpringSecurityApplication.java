@@ -2,7 +2,7 @@ package emma.galzio.tutorialjwtspringsecurity;
 
 import emma.galzio.tutorialjwtspringsecurity.domain.Role;
 import emma.galzio.tutorialjwtspringsecurity.domain.User;
-import emma.galzio.tutorialjwtspringsecurity.service.UserService;
+import emma.galzio.tutorialjwtspringsecurity.controller.UserService;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

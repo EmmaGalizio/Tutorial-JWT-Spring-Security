@@ -2,10 +2,9 @@ package emma.galzio.tutorialjwtspringsecurity.api;
 
 import emma.galzio.tutorialjwtspringsecurity.domain.Role;
 import emma.galzio.tutorialjwtspringsecurity.domain.User;
-import emma.galzio.tutorialjwtspringsecurity.service.IUserService;
+import emma.galzio.tutorialjwtspringsecurity.controller.IUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.hateoas.PagedModel;
-import org.springframework.hateoas.RepresentationModel;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;

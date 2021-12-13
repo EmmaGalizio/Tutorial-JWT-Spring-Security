@@ -1,7 +1,8 @@
 package emma.galzio.tutorialjwtspringsecurity.security;
 
-import emma.galzio.tutorialjwtspringsecurity.autenticationFilter.CustomAutenticationFilter;
-import emma.galzio.tutorialjwtspringsecurity.autenticationFilter.CustomAuthorizationFilter;
+import emma.galzio.tutorialjwtspringsecurity.security.filter.CustomAuthenticationFilter;
+import emma.galzio.tutorialjwtspringsecurity.security.filter.CustomAuthorizationFilter;
+import emma.galzio.tutorialjwtspringsecurity.security.utils.JWTUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -25,6 +26,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     //Pero utilizamos uno personalizado
     private final UserDetailsService userDetailsService;
     private final BCryptPasswordEncoder bCryptPasswordEncoder; //No es un bean, hay que declarar e inicializar
+    private final JWTUtils jwtUtils;
     //// el bean en una clase de configuracion con @Bean
 
     @Override
@@ -47,8 +49,9 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         http.csrf().disable(); //Desactiva cross site recuest forgery (falsificación de petición en sitios cruzados)
         //Por defecto el login en la api es sobre la URL /login, pero si queremos lo podemos cambiar mediante el
         //CustomAuthenticationFilter
-        CustomAutenticationFilter customAutenticationFilter = new CustomAutenticationFilter(authenticationManagerBean());
-        customAutenticationFilter.setFilterProcessesUrl("/api/login");
+        CustomAuthenticationFilter customAuthenticationFilter
+                            = new CustomAuthenticationFilter(authenticationManagerBean(), jwtUtils);
+        customAuthenticationFilter.setFilterProcessesUrl("/api/login");
         http.sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS); //JWT, no almacena estado de sesion
         http.authorizeRequests().antMatchers("/api/login/**", "/api/token/refresh/**").permitAll();
         //Ahora así el path de logueo es /api/login
@@ -56,10 +59,10 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         http.authorizeRequests().antMatchers(HttpMethod.POST, "/api/users/**","/api/roles/**").hasAuthority("ADMIN")
                         .antMatchers(HttpMethod.GET, "/api/users/**").hasAuthority("USER");
         //http.authorizeRequests().anyRequest().authenticated(); //Cualquier peticion debe ser por alguien autenticado
-        http.addFilter(customAutenticationFilter);
+        http.addFilter(customAuthenticationFilter);
         //Se utiliza addFilterBefore porque lo que se quiere es que lo primero que se haga al tratar una request
         //sea verificar si tiene un Authorization header con un token válido
-        http.addFilterBefore(new CustomAuthorizationFilter(), UsernamePasswordAuthenticationFilter.class);
+        http.addFilterBefore(new CustomAuthorizationFilter(jwtUtils), UsernamePasswordAuthenticationFilter.class);
     }
 
     @Bean
@@ -67,6 +70,7 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
     public AuthenticationManager authenticationManagerBean() throws Exception {
         return super.authenticationManagerBean();
     }
+
 }
 
 /***
@@ -84,7 +88,10 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
  * autenticacion en tiempo de ejecución.
  * Los métodos config supongo que se llaman una sola vez cuando se inicia la aplicación, indicando de donde
  * se obtienen los usuarios, y cuales son las URL que es necesario validar
- *
+ *Filtros:
+ * Los filtros se agregan manualmente con addFilter, o addFilterBefore, por eso se pueden crear como
+ * POJOs e inyectarles las dependencias necesarias mediante los constructores, estaría bueno cambiar el JWTUtils por
+ * una interfaz
  *
  * AuthenticationFilter: Se encarga de las tareas relacionadas con la autenticacion
  * en este caso, sobreescribi los métodos attemptAuthentication, successfulAuthentication y unsuccessfulAuthentication
@@ -102,6 +109,9 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
  * del usuario y lo mapea a un objeto de usuario de Spring
  *
  * AuthorizationFilter: Extiende OncePerRecuestFilter y sobrescribe el método doFilter.
+ * Es el primer filtro que se implementa porque primero debe validar si la request tiene el Authorization header
+ * Si lo tiene, significa que el usuario ya se autenticó y lo que hace falta es saber si sus credenciales o permisos
+ * son correctos
  * Se registra en el AutenticationManager con addFilterBefore porque es el primer filtro que se ejecuta al recibir
  * una request. La función de este filtro en este caso es verificar que la request contenga el header Authorization,
  * si lo tiene verifica que el token sea válido, y si lo es entonces ya carga los datos del usuario y los roles

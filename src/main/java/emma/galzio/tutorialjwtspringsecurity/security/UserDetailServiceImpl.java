@@ -1,6 +1,7 @@
-package emma.galzio.tutorialjwtspringsecurity.service;
+package emma.galzio.tutorialjwtspringsecurity.security;
 
 import emma.galzio.tutorialjwtspringsecurity.domain.User;
+import emma.galzio.tutorialjwtspringsecurity.controller.IUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
